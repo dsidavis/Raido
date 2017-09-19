@@ -3,6 +3,8 @@
 #  allow the caller of getOutbreaks to specify the disease by name and we map it to an id.
 #  When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
 #
+#  convert the id column of a data frame to a factor/string, not an integer. Same with location
+#
 #  Collapse the result of the admin_level (getLocationAdmin) into a data frame.
 #  ?? Let location in getOutbreaks() be a human-readable description and then map this a location id.
 #
@@ -30,35 +32,41 @@ function(disease, location = character(), max = Inf, url = "http://aido.bsvgatew
     args = list(disease = disease)
     if(length(location)) {
         if(!grepl("^[0-9]+$", location))
-            location = getLocation(location, curl = curl)$id
+            location = getLocation(location, curl = curl)[[1]]$id
         args$location = location
     }
-    txt = getForm(url, .params = args, disease = disease, curl = curl)
-    ans = processPages(txt, curl, max = max)
-
-    if(is.null(convertFun))
-       ans
-    else
-       convertFun(ans)
+    
+    txt = getForm(url, .params = args, curl = curl)
+    processPages(txt, curl, max = max, convertFun = convertFun)
 }
 
 
 
 processPages =
     #
-    # get the next pages after the initial reslt.
+    # go through all the "next" pages after the initial result and cumulate the results.
+    # max allows the caller to limit this to a total number of individual results.
     #
-function(tmp, curl, max = Inf)
+    # There are (currently) 10 results per page.
+    #
+function(tmp, curl, max = Inf, convertFun = NULL, ...)
 {
     if(is.character(tmp))
        tmp = fromJSON(tmp)
-    
+
+    if(!("results" %in% names(tmp)))
+       return(tmp)
+       
     ans = tmp$results
     while(length(ans) < max && length(tmp$"next")) {
         tmp = fromJSON(getURLContent(tmp$"next", curl = curl))
         ans = c(ans, tmp$results)
     }
-    ans
+
+    if(is.null(convertFun))
+       ans
+    else
+       convertFun(ans, ...)
 }
 
 if(FALSE) {
@@ -121,7 +129,7 @@ function(location = character(), admin = integer(), max = Inf,
               getURLContent(paste0(url, location), curl = curl)
 
     ans = processPages(txt, curl, max = max)
-    convert2DataFrame(ans, names(ans[[1]]))
+#    convert2DataFrame(ans, names(ans[[1]]))
 }
 
 
