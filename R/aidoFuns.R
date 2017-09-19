@@ -4,6 +4,7 @@
 #  When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
 #
 #  Collapse the result of the admin_level (getLocationAdmin) into a data frame.
+#  ?? Let location in getOutbreaks() be a human-readable description and then map this a location id.
 #
 #  vectorize getDisease() and getLocation()
 #
@@ -14,6 +15,11 @@
 #
 #
 getOutbreaks =
+    #
+    # For a given disease, specified either by its identifier or (initial part) of its English name
+    # get all of the corresponding outbreaks.  This returns the
+    # One can also specify a location, currently only by its identifier.
+    # 
 function(disease, location = character(), max = Inf, url = "http://aido.bsvgateway.org/api/outbreaks",
          convertFun = outbreaks2DataFrame,             
           curl = getCurlHandle(..., followlocation = TRUE), ...)
@@ -22,8 +28,11 @@ function(disease, location = character(), max = Inf, url = "http://aido.bsvgatew
        disease = getDiseaseID(disease)
     
     args = list(disease = disease)
-    if(length(location))
+    if(length(location)) {
+        if(!grepl("^[0-9]+$", location))
+            location = getLocation(location, curl = curl)$id
         args$location = location
+    }
     txt = getForm(url, .params = args, disease = disease, curl = curl)
     tmp = fromJSON(txt)
 
@@ -37,6 +46,25 @@ function(disease, location = character(), max = Inf, url = "http://aido.bsvgatew
        ans
     else
        convertFun(ans)
+}
+
+
+
+processPages =
+    #
+    # get the next pages after the initial reslt.
+    #
+function(tmp, curl, max = Inf)
+{
+    if(is.character(tmp))
+       tmp = fromJSON(tmp)
+    
+    ans = tmp$results
+    while(length(ans) < max && length(tmp$"next")) {
+        tmp = fromJSON(getURLContent(tmp$"next", curl = curl))
+        ans = c(ans, tmp$results)
+    }
+    ans
 }
 
 if(FALSE) {
@@ -68,7 +96,13 @@ function(o)
 }
 
 
-
+if(FALSE)
+getLocationID =
+function(search, url = "http://aido.bsvgateway.org/api/locations/",
+         curl = getCurlHandle(..., followlocation = TRUE), ...)
+{
+    fromJSON(getForm(url, search = search, curl = curl))
+}
 
 getLocation =
     #
@@ -83,18 +117,17 @@ function(location = character(), admin = integer(), max = Inf,
 {
     if(!missing(admin))
         return(getLocationAdmin(admin, max = max, url = url, curl = curl))
-        #args = list(admin_level = admin)
-    else if(grepl("^http.*/[0-9]+/?$", location))
-            # if the location contains the location identifier, then this is the API URL to query directly.        
-        return(fromJSON(getURLContent(location, curl = curl)))
-    else if(!grepl("^[0-9]+$", location))
-        args = list(search = location)
-    else {
-        url = paste0(url, location)
-        return(fromJSON(getURLContent(url, curl = curl)))
-    }
     
-    fromJSON(getForm(url, .params = args, curl = curl))
+     txt = if(grepl("^http.*/[0-9]+/?$", location))
+            # if the location contains the location identifier, then this is the API URL to query directly.        
+              getURLContent(location, curl = curl)
+           else if(!grepl("^[0-9]+$", location))
+              getForm(url, search = location, curl = curl)
+           else 
+              getURLContent(paste0(url, location), curl = curl)
+
+    ans = processPages(txt, curl, max)
+    convert2DataFrame(ans, names(ans[[1]]))
 }
 
 
@@ -143,6 +176,12 @@ function(d, vars = c("id", "name"), dataFrame = TRUE)
 
 
 getDiseaseID =
+    #
+    #'@title map a human-readable disease name to the corresponding id in the database.
+    #'@local: a logical value determining whether we use the previously downloaded mapping of names to ids, or if we 
+    #   make the request now. The former is faster; the latter is more up-to-date.
+    # @diseases - the named vector of disease identifiers with the names being the human-readable form.
+    #
 function(name, local = TRUE,
          diseases = if(local) diseaseMap else getDiseases(curl = curl),
          curl = getCurlHandle(..., followlocation = TRUE), ...)
