@@ -1,0 +1,12 @@
+diseaseMap = structure(c(65, 78, 50, 25, 26, 27, 28, 29, 59, 77, 79, 31, 56, 
+64, 39, 33, 74, 63, 67, 69, 48, 30, 76, 35, 62, 73, 36, 66, 75, 
+53, 71, 49, 51, 38, 57, 61, 68), .Names = c("Anthrax", "Brucellosis", 
+"Campylobacteriosis", "Chikungunya", "Cholera", "Dengue", "Ebola", 
+"Foot And Mouth Disease", "Gastroenteritis", "Japanese Encephalitis", 
+"Lassa Fever", "Leptospirosis", "Malaria", "Marburg", "Measles", 
+"Meningococcal Disease", "Middle East Respiratory Syndrome (MERS-CoV)", 
+"Monkeypox", "Mumps", "Nipah", "Norovirus", "Novel Influenza A", 
+"Pertussis", "Plague", "Polio", "Porcine Epidemic Diarrhea Virus (PEDV)", 
+"Q Fever", "Rift Valley Fever", "Rubella", "Salmonellosis", "Severe Acute Respiratory Syndrome (SARS)", 
+"Shiga Toxin-Producing E. Coli (STEC)", "Shigellosis", "Tularemia", 
+"West Nile Virus", "Yellow Fever", "Zika"))
