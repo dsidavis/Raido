@@ -1,0 +1,12 @@
+Package: Raido
+Version: 0.1-0
+Title: R interface to AIDO Outbreak API
+Description: Functionality to query information about
+ disease outbreak, the number of people affected over time,
+ the duration, and the the location.
+Note: API URL https://aido.bsvgateway.org/api/
+Authors: Cristin Young, Duncan Temple Lang
+Maintainer: Cristin Young <ccwyoung@ucdavis.edu>
+Imports: RCurl, RJSONIO
+License: BSD
+
