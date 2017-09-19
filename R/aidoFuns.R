@@ -1,15 +1,17 @@
 #
 # Todo
-#  When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
-#
-#  convert the id column of a data frame to a factor/string, not an integer. Same with location
+#  [verify - implemented] When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
 #
 #  Collapse the result of the admin_level (getLocationAdmin) into a data frame.
-#  ?? Let location in getOutbreaks() be a human-readable description and then map this a location id.
+#  [done] Let location in getOutbreaks() be a human-readable description and then map this to a location id.
 #    possibly mutiple matches. Use the first one and HOPE!
 #
 #  vectorize getDisease() and getLocation()
 #
+#  [low] drop url in getLocation() since id gives us this information.
+#
+#  [done] convert centroid in getLocation() to lat long.
+#  [done] convert the id column of a data frame to a factor/string, not an integer. Same with location
 #  [done] allow the caller of getOutbreaks to specify the disease by name and we map it to an id.
 #  [done]check the admin_level - add process $"next" for pages
 #  [done] in getLocation() allow the caller to give us the URL from the result rather than location id.
@@ -26,7 +28,8 @@ getOutbreaks =
     # 
 function(disease, location = character(), max = Inf,
          url = "http://aido.bsvgateway.org/api/outbreaks",
-         convertFun = outbreaks2DataFrame,             
+         convertFun = outbreaks2DataFrame,
+         getLocation = TRUE,
          curl = getCurlHandle(..., followlocation = TRUE), ...)
 {
     if(!grepl("^[0-9]+$", disease))
@@ -40,7 +43,11 @@ function(disease, location = character(), max = Inf,
     }
     
     txt = getForm(url, .params = args, curl = curl)
-    processPages(txt, curl, max = max, convertFun = convertFun)
+    ans = processPages(txt, curl, max = max, convertFun = convertFun)
+    if(getLocation)
+       resolveLocation(ans)
+    else
+       ans
 }
 
 
@@ -83,7 +90,7 @@ function(o)
 {
     d2 = lapply(o, function(v) {
            df = convert2DataFrame(v$time_series, c("end", "start", "value"))
-           df$id = v$id
+           df$id = as.character(v$id)
            df$disease = v$disease
            df$location = v$location
            df$duration = v$duration
@@ -96,6 +103,7 @@ function(o)
 
     v = c("disease", "location")
     ans[v] = lapply(v, function(x) gsub(".*/", "", gsub("/$", "", ans[[x]])))
+
     
     ans
 }
@@ -186,4 +194,31 @@ function(name, local = TRUE,
         warning("No matching disease: ", name[is.na(i)])
 
     diseases[i[!is.na(i)]]
+}
+
+
+
+latLon =
+function(x)
+{
+  as.numeric(strsplit(gsub("POINT \\(|\\)", "", x), " ")[[1]])
+}
+
+
+resolveLocation =
+function(d, curl = getCurlHandle(..., followlocation = TRUE), ...)
+{
+    ans = do.call(rbind, by(d, d$location, fillInLocation, curl = curl))
+    ans[ !( names(ans) %in% "centroid" ) ]
+}
+
+fillInLocation =
+function(d, loc = getLocation(d$location[1], curl = curl), curl = getCurlHandle(..., followlocation = TRUE), ...)    
+{
+
+    loc[c("longitude", "latitude")] = latLon(loc$centroid)
+    v = names(loc)
+    n = nrow(d)    
+    d[v] = lapply(loc[v], rep, n)
+    d
 }
