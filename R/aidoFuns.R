@@ -55,6 +55,7 @@ function(disease, location = character(), max = Inf,
 
 
 
+# internal
 processPages =
     #
     # go through all the "next" pages after the initial result and cumulate the results.
@@ -88,7 +89,11 @@ if(FALSE) {
     dd = convert2DataFrame(o, names(o[[1]])[1:5])
 }
 
+# internal
 outbreaks2DataFrame =
+    # Convert the list of results from outbreaks into a data frame.
+    # each outbreak is a time series with start, end, value and then we repeat the additional fixed
+    # information for each row of the time series. These fixed fields are id, location, duration, disease, location
 function(o)
 {
     d2 = lapply(o, function(v) {

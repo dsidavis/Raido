@@ -3,3 +3,5 @@ import(RJSONIO)
 
 export(getOutbreaks, getLocation, getDiseases)
 
+export(getDiseaseID)
+
