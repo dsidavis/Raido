@@ -2,14 +2,12 @@
 # Todo
 #  vectorize getDisease() and getLocation()
 #
-#  [verify - implemented] When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
+#  [low] drop url in getLocation() since id gives us this information.
 #
+#  [verify - implemented] When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
 #  [verify] Collapse the result of the admin_level (getLocationAdmin) into a data frame.
 #  [done] Let location in getOutbreaks() be a human-readable description and then map this to a location id.
 #    possibly mutiple matches. Use the first one and HOPE!
-#
-#  [low] drop url in getLocation() since id gives us this information.
-#
 #  [done] convert centroid in getLocation() to lat long.
 #  [done] convert the id column of a data frame to a factor/string, not an integer. Same with location
 #  [done] allow the caller of getOutbreaks to specify the disease by name and we map it to an id.
@@ -35,11 +33,14 @@ function(disease, location = character(), max = Inf,
          getLocation = TRUE,
          curl = getCurlHandle(..., followlocation = TRUE), ...)
 {
+      # check if a numeric identifier and if not, assume a disease name so lookup its id.
     if(!grepl("^[0-9]+$", disease))
        disease = getDiseaseID(disease)
     
     args = list(disease = disease)
     if(length(location)) {
+        # if the location does not seem to be an identifier, query its identifier
+        # by doing a search with the location as the search string.
         if(!grepl("^[0-9]+$", location))
             location = getLocation(location, curl = curl)[[1]]$id
         args$location = location
@@ -48,6 +49,7 @@ function(disease, location = character(), max = Inf,
     txt = getForm(url, .params = args, curl = curl)
     ans = processPages(txt, curl, max = max, convertFun = convertFun)
     if(getLocation)
+          # replace the location id with the information details.
        resolveLocation(ans)
     else
        ans
@@ -195,6 +197,8 @@ getDiseaseID =
     #   make the request now. The former is faster; the latter is more up-to-date.
     # @diseases - the named vector of disease identifiers with the names being the human-readable form.
     #
+    # One can use upper or lower case. The match is done by partial matching on the lower case versions.
+    #
 function(name, local = TRUE,
          diseases = if(local) diseaseMap else getDiseases(curl = curl),
          curl = getCurlHandle(..., followlocation = TRUE), ...)
@@ -231,7 +235,6 @@ function(d, curl = getCurlHandle(..., followlocation = TRUE), ...)
 fillInLocation =
 function(d, loc = getLocation(d$location[1], curl = curl), curl = getCurlHandle(..., followlocation = TRUE), ...)    
 {
-#browser()
     loc[c("longitude", "latitude")] = latLon(loc$centroid)
     v = names(loc)
     n = nrow(d)    
