@@ -34,13 +34,7 @@ function(disease, location = character(), max = Inf, url = "http://aido.bsvgatew
         args$location = location
     }
     txt = getForm(url, .params = args, disease = disease, curl = curl)
-    tmp = fromJSON(txt)
-
-    ans = tmp$results
-    while(length(ans) < max && length(tmp$"next")) {
-        tmp = fromJSON(getURLContent(tmp$"next", curl = curl))
-        ans = c(ans, tmp$results)
-    }
+    ans = processPages(txt, curl, max = max)
 
     if(is.null(convertFun))
        ans
@@ -126,7 +120,7 @@ function(location = character(), admin = integer(), max = Inf,
            else 
               getURLContent(paste0(url, location), curl = curl)
 
-    ans = processPages(txt, curl, max)
+    ans = processPages(txt, curl, max = max)
     convert2DataFrame(ans, names(ans[[1]]))
 }
 
@@ -135,14 +129,7 @@ getLocationAdmin =
 function(level, max = Inf, url = "http://aido.bsvgateway.org/api/locations/",
          curl = getCurlHandle(..., followlocation = TRUE), ...)
 {
-    tmp = fromJSON(getForm(url, admin_level = level, curl = curl))
-    ans = tmp$results
-    while(length(ans) < max && length(tmp$"next")) {
-        tmp = fromJSON(getURLContent(tmp$"next", curl = curl))
-        ans = c(ans, tmp$results)
-    }
-#    do.call(rbind, lapply(ans, as.data.frame, stringsAsFactors = FALSE))
-    ans
+    processPages(getForm(url, admin_level = level, curl = curl), curl, max = max)
 }
 
 getDiseases =
@@ -152,12 +139,7 @@ getDiseases =
 function(max = Inf, url = "http://aido.bsvgateway.org/api/diseases",
          curl = getCurlHandle(..., followlocation = TRUE), ...)
 {
-    tmp = fromJSON(getURLContent(url, curl = curl))
-    ans = tmp$results
-    while(length(ans) < max && length(tmp$"next")) {
-        tmp = fromJSON(getURLContent(tmp$"next", curl = curl))
-        ans = c(ans, tmp$results)
-    }
+    ans = processPages(getURLContent(url, curl = curl), curl, max = max)
     convertDisease(ans, dataFrame = FALSE)
 }
 
