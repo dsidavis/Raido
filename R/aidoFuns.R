@@ -1,30 +1,33 @@
 #
 # Todo
-#  allow the caller of getOutbreaks to specify the disease by name and we map it to an id.
 #  When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
 #
 #  convert the id column of a data frame to a factor/string, not an integer. Same with location
 #
 #  Collapse the result of the admin_level (getLocationAdmin) into a data frame.
 #  ?? Let location in getOutbreaks() be a human-readable description and then map this a location id.
+#    possibly mutiple matches. Use the first one and HOPE!
 #
 #  vectorize getDisease() and getLocation()
 #
+#  [done] allow the caller of getOutbreaks to specify the disease by name and we map it to an id.
 #  [done]check the admin_level - add process $"next" for pages
 #  [done] in getLocation() allow the caller to give us the URL from the result rather than location id.
 #  [done] convert the times to Date (or POSIXct)
 #  [done] get the diseases locally so we don't have to perform an online request.
 #
 #
+
 getOutbreaks =
     #
     # For a given disease, specified either by its identifier or (initial part) of its English name
     # get all of the corresponding outbreaks.  This returns the
     # One can also specify a location, currently only by its identifier.
     # 
-function(disease, location = character(), max = Inf, url = "http://aido.bsvgateway.org/api/outbreaks",
+function(disease, location = character(), max = Inf,
+         url = "http://aido.bsvgateway.org/api/outbreaks",
          convertFun = outbreaks2DataFrame,             
-          curl = getCurlHandle(..., followlocation = TRUE), ...)
+         curl = getCurlHandle(..., followlocation = TRUE), ...)
 {
     if(!grepl("^[0-9]+$", disease))
        disease = getDiseaseID(disease)
@@ -142,7 +145,7 @@ function(level, max = Inf, url = "http://aido.bsvgateway.org/api/locations/",
 
 getDiseases =
     #
-    # get all the disease name and id pairs in the database
+    #'@title get all the disease name and id pairs in the database
     #
 function(max = Inf, url = "http://aido.bsvgateway.org/api/diseases",
          curl = getCurlHandle(..., followlocation = TRUE), ...)
@@ -158,9 +161,9 @@ function(d, vars = c("id", "name"), dataFrame = TRUE)
    if(dataFrame) {
         ans = as.data.frame(tmp, stringsAsFactors = FALSE)
         names(ans) = vars
-    } else {
+    } else 
         ans = structure(tmp[[1]], names = tmp[[2]])
-    }
+
     ans
 }
 
