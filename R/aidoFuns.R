@@ -1,12 +1,12 @@
 #
 # Todo
+#  vectorize getDisease() and getLocation()
+#
 #  [verify - implemented] When we get the outbreaks as a data frame, then go and fill the location information on the unique location ids.
 #
-#  Collapse the result of the admin_level (getLocationAdmin) into a data frame.
+#  [verify] Collapse the result of the admin_level (getLocationAdmin) into a data frame.
 #  [done] Let location in getOutbreaks() be a human-readable description and then map this to a location id.
 #    possibly mutiple matches. Use the first one and HOPE!
-#
-#  vectorize getDisease() and getLocation()
 #
 #  [low] drop url in getLocation() since id gives us this information.
 #
@@ -19,6 +19,9 @@
 #  [done] get the diseases locally so we don't have to perform an online request.
 #
 #
+#
+# eb1 = getOutbreaks("Ebola", "gabon")
+# a = getLocation(admin = 2, max = 20)
 
 getOutbreaks =
     #
@@ -148,7 +151,11 @@ getLocationAdmin =
 function(level, max = Inf, url = "http://aido.bsvgateway.org/api/locations/",
          curl = getCurlHandle(..., followlocation = TRUE), ...)
 {
-    processPages(getForm(url, admin_level = level, curl = curl), curl, max = max)
+    ans = processPages(getForm(url, admin_level = level, curl = curl), curl, max = max)
+    ans = convert2DataFrame(ans, names(ans[[1]]))
+    tmp = latLon(ans$centroid)
+    ans[c("longitude", "latitude")] = tmp
+    ans
 }
 
 getDiseases =
@@ -201,7 +208,11 @@ function(name, local = TRUE,
 latLon =
 function(x)
 {
-  as.numeric(strsplit(gsub("POINT \\(|\\)", "", x), " ")[[1]])
+    tmp = strsplit(gsub("POINT \\(|\\)", "", x), " ")
+    if(length(x) == 1)
+        as.numeric(tmp[[1]])
+    else
+       lapply(1:2, function(i) sapply(tmp, `[`, i))
 }
 
 
@@ -215,7 +226,7 @@ function(d, curl = getCurlHandle(..., followlocation = TRUE), ...)
 fillInLocation =
 function(d, loc = getLocation(d$location[1], curl = curl), curl = getCurlHandle(..., followlocation = TRUE), ...)    
 {
-
+#browser()
     loc[c("longitude", "latitude")] = latLon(loc$centroid)
     v = names(loc)
     n = nrow(d)    
